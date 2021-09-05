@@ -1,0 +1,491 @@
+<html>
+
+<head>
+	<style>
+		:root {
+			--clr-foreground: hsl(0 0% 0%);
+			--clr-background: hsl(0 0% 100%);
+		}
+
+		@media (prefers-color-scheme: dark) {
+			:root {
+				--clr-background: hsl(0 0% 0%);
+				--clr-foreground: hsl(0 0% 100%);
+			}
+		}
+
+		.light-theme {
+			--clr-foreground: hsl(0 0% 0%);
+			--clr-background: hsl(0 0% 100%);
+		}
+
+		.dark-theme {
+			--clr-background: hsl(0 0% 10%);
+			--clr-foreground: hsl(0 0% 100%);
+		}
+
+		body {
+			background: var(--clr-background);
+			color: var(--clr-foreground);
+		}
+
+		td {
+			vertical-align: top;
+		}
+
+		.slain {
+			color: hsl(0 0% 0%);
+		}
+
+		.only-optimal .bad {
+			display: none;
+		}
+
+		.no-special .slain.special {
+			display: none;
+		}
+
+		input[type='number'] {
+			max-width: 4rem;
+		}
+
+		.bad {
+			color: hsl(0 0% 50%);
+		}
+
+		.viable {
+			color: green;
+		}
+
+		.row {
+			display: flex;
+		}
+
+		label {
+			width: 100%;
+			display: inline-block;
+		}
+
+		td+td {
+			text-align: right;
+		}
+
+
+		#theme-toggle {
+			cursor: pointer;
+			background: 0;
+			border: 0;
+			opacity: 0.8;
+			padding: 1rem;
+			border-radius: 50%;
+			position: relative;
+			isolation: isolate;
+		}
+
+		#theme-toggle svg {
+			fill: var(--clr-foreground);
+			width: 30px;
+			height: 30px;
+		}
+
+		#theme-toggle::before {
+			content: "";
+			position: absolute;
+			inset: 0;
+			background: hsl(0 0% 50% / 0.2);
+			border-radius: inherit;
+			transform: scale(0);
+			opacity: 0;
+			z-index: -1;
+		}
+
+		.light-theme #theme-toggle::before {
+			animation: pulseToLight 650ms ease-out;
+		}
+
+		.dark-theme #theme-toggle::before {
+			animation: pulseToDark 650ms ease-out;
+		}
+
+		#theme-toggle::after {
+			content: attr(aria-label);
+			position: absolute;
+			color: var(--clr-background);
+			background: var(--clr-foreground);
+			width: max-content;
+			font-size: 1.5rem;
+			right: 0;
+			top: 95%;
+			margin: 0 auto;
+			padding: 0.5em 1em;
+			border-radius: 0.125em;
+			opacity: 0;
+			transform: scale(0);
+			transform-origin: top;
+			transition: transform 0ms linear 100ms, opacity 100ms linear;
+		}
+
+		#theme-toggle:hover,
+		#theme-toggle:focus {
+			outline: 0;
+			opacity: 1;
+			background: hsl(0 0% 50% / 0.15);
+		}
+
+		#theme-toggle:hover::after,
+		#theme-toggle:focus-visible::after {
+			opacity: 0.7;
+			transform: scale(1);
+			transition: transform 70ms linear, opacity 70ms linear;
+		}
+
+		.toggle-circle {
+			transition: transform 500ms ease-out;
+		}
+
+		.light-theme .toggle-circle {
+			transform: translateX(-15%);
+		}
+
+		.toggle-sun {
+			transform-origin: center center;
+			transition: transform 750ms cubic-bezier(0.11, 0.14, 0.29, 1.32);
+		}
+
+		.light-theme .toggle-sun {
+			transform: rotate(0.5turn);
+		}
+
+		@keyframes pulseToLight {
+			0% {
+				transform: scale(0);
+				opacity: 0.5;
+			}
+
+			10% {
+				transform: scale(1);
+			}
+
+			75% {
+				opacity: 1;
+			}
+
+			100% {
+				opacity: 0;
+				transform: scale(1);
+			}
+		}
+
+		@keyframes pulseToDark {
+			0% {
+				transform: scale(0);
+				opacity: 0.5;
+			}
+
+			10% {
+				transform: scale(1);
+			}
+
+			75% {
+				opacity: 1;
+			}
+
+			100% {
+				opacity: 0;
+				transform: scale(1);
+			}
+		}
+	</style>
+</head>
+
+<body class="no-special" onLoad="doit()">
+	<div style="display: flex;">
+		<h1 style="flex-grow: 1;">Tormentor Forecast</h1>
+		<div>
+			<button id="theme-toggle" aria-label="Switch to dark theme">
+				<svg xmlns="http://www.w3.org/2000/svg" width="472.39" height="472.39" viewBox="0 0 472.39 472.39">
+					<g class="toggle-sun">
+						<path
+							d="M403.21,167V69.18H305.38L236.2,0,167,69.18H69.18V167L0,236.2l69.18,69.18v97.83H167l69.18,69.18,69.18-69.18h97.83V305.38l69.18-69.18Zm-167,198.17a129,129,0,1,1,129-129A129,129,0,0,1,236.2,365.19Z" />
+					</g>
+					<g class="toggle-circle">
+						<circle class="cls-1" cx="236.2" cy="236.2" r="103.78" />
+					</g>
+				</svg>
+			</button>
+		</div>
+	</div>
+	<div class="row">
+		<div>
+			<table class="tormentors">
+			</table>
+		</div>
+		<div>
+			<table class="times">
+			</table>
+		</div>
+	</div>
+</body>
+<script>
+	var tormentors = [
+		{ name: 'Kazj the Sentinel', slain: false, special: null },
+		{ name: 'Promathiz', slain: true, special: null },
+		{ name: 'Sentinel Shakorzeth', slain: true, special: null },
+		{ name: 'Intercessor Razzram', slain: true, special: null },
+		{ name: 'Gruukuuek the Elder', slain: true, special: null },
+		{ name: 'Algel the Haunter', slain: true, special: null },
+		{ name: 'Malleus Grakizz', slain: true, special: null },
+		{ name: 'Gralebboih', slain: true, special: 'pet' },
+		{ name: 'The Mass of Souls', slain: true, special: null },
+		{ name: 'Manifestation of Pain', slain: false, special: null },
+		{ name: 'Versya the Damned', slain: true, special: null },
+		{ name: 'Zul\'gath the Flayer', slain: true, special: null },
+		{ name: 'Golmak the Monstrosity', slain: true, special: null },
+		{ name: 'Sentinel Pyrophus', slain: true, special: null },
+		{ name: 'Mugrem the Soul Devourer', slain: false, special: null }
+	]
+
+	var optimalFrom = 17;
+	var optimalTo = 1;
+
+	function doit() {
+		readTormentorConfigFromStorage();
+		loadPrefs();
+		showConfig();
+		showTormentors();
+	}
+
+	function showTormentors() {
+		document.querySelector('table.times').innerHTML = '';
+		var interval = 2;
+		start = new Date("Sat Sep 04 2021 15:00:00 GMT+0200 (Mitteleuropäische Sommerzeit)");
+		var intervalSeconds = 2 * 60 * 60 * 1000;
+		now = new Date();
+		tormentor = 0;
+		displayed = 0;
+		var runs = 0;
+		var setsToDisplay = 10;
+		while (displayed < tormentors.length * setsToDisplay) {
+			var tormentorOffset = runs * intervalSeconds;
+			var tormentorTime = new Date(start.getTime() + tormentorOffset);
+			if (tormentorTime < now) {
+				runs++;
+				continue;
+			}
+			var tormentor = runs % tormentors.length;
+			display(tormentors[tormentor], tormentorTime)
+			displayed++;
+			runs++;
+		}
+	}
+
+	function display(tormentor, time) {
+		tr = document.createElement('tr');
+		if (tormentor.slain) {
+			tr.classList.add('slain');
+		}
+		if (tormentor.special) {
+			tr.classList.add('special');
+		}
+		var isOptimal = time.getHours() >= optimalFrom && time.getHours() <= optimalTo;
+		if (optimalFrom > optimalTo) {
+			isOptimal = time.getHours() >= optimalFrom || time.getHours() <= optimalTo;
+		}
+		if (isOptimal) {
+			tr.classList.add('viable')
+		} else {
+			tr.classList.add('bad')
+		}
+		nameTd = document.createElement('td');
+		nameTd.innerText = tormentorName(tormentor)
+		timeTd = document.createElement('td');
+		intl = new Intl.DateTimeFormat('default', { dateStyle: 'full', timeStyle: 'long' })
+		timeTd.innerText = intl.format(time);
+		tr.append(nameTd);
+		tr.append(timeTd);
+		if (!tormentor.slain || tormentor.special) {
+			document.querySelector('table.times').append(tr);
+		}
+	}
+
+	function readTormentorConfigFromStorage() {
+		fromStorage = storage('tormentors');
+		if (!fromStorage) {
+			storage('tormentors', tormentors)
+		} else {
+			tormentors = fromStorage;
+		}
+	}
+
+	function showConfig() {
+		var table = document.querySelector('table.tormentors');
+		index = 0;
+		for (var tormentor of tormentors) {
+			tr = document.createElement('tr');
+			nameLabel = document.createElement('label');
+			nameLabel.setAttribute('for', index);
+			nameLabel.innerText = tormentorName(tormentor);
+			nameTd = document.createElement('td');
+			nameTd.append(nameLabel);
+			slainTd = document.createElement('td');
+			slainInput = document.createElement('input');
+			slainInput.type = 'checkbox';
+			slainInput.id = index;
+			slainInput.classList.add('chk-slain')
+			index++;
+			slainTd.append(slainInput);
+			slainInput.addEventListener('change', update);
+			if (tormentor.slain) {
+				slainInput.checked = true;
+			}
+			tr.append(nameTd);
+			tr.append(slainTd);
+			table.append(tr);
+		}
+		tr = document.createElement('tr');
+		tr.classList.add('spacer')
+		optimalTd = document.createElement('td');
+		optimalTd.innerText = 'show only optimal';
+		optimalInputTd = document.createElement('td');
+		optimalInput = document.createElement('input');
+		optimalInput.type = 'checkbox';
+		optimalInput.id = 'optimal';
+		optimalInput.addEventListener('change', toggleOptimalClass);
+		optimalInputTd.append(optimalInput);
+		tr.append(optimalTd);
+		tr.append(optimalInputTd);
+		table.append(tr);
+
+		tr = document.createElement('tr');
+		fromToTd = document.createElement('td');
+		fromToTd.colspan = 2;
+		optimalTimeDiv = document.createElement('div');
+		optimalTimeDiv.innerText = 'optimal time (from/to)'
+		fromToTd.append(optimalTimeDiv)
+		from = document.createElement('input');
+		from.id = 'from'
+		from.type = 'number';
+		from.min = 0;
+		from.max = 24;
+		from.value = optimalFrom;
+		from.addEventListener('change', changeOptimalTime)
+		to = document.createElement('input');
+		to.id = 'to'
+		to.type = 'number';
+		to.min = 0;
+		to.max = 24;
+		to.value = optimalTo;
+		to.addEventListener('change', changeOptimalTime)
+		fromToTd.append(from);
+		fromToTd.append(to);
+		tr.append(fromToTd);
+		table.append(tr);
+
+		tr = document.createElement('tr');
+		optimalTd = document.createElement('td');
+		optimalTd.innerText = 'always show specials (pet)';
+		optimalInputTd = document.createElement('td');
+		optimalInput = document.createElement('input');
+		optimalInput.type = 'checkbox';
+		optimalInput.id = 'special';
+		optimalInput.addEventListener('change', toggleSpecialClass);
+		optimalInputTd.append(optimalInput);
+		tr.append(optimalTd);
+		tr.append(optimalInputTd);
+		table.append(tr);
+	}
+
+	function changeOptimalTime(event) {
+		number = Number.parseInt(event.target.value);
+		if (Number.isNaN(number)) {
+			number = null;
+		}
+		if (event.target.id === 'from') {
+			optimalFrom = number
+		} else {
+			optimalTo = number
+		}
+		savePrefs()
+		showTormentors();
+	}
+
+	function toggleOptimalClass() {
+		document.querySelector('body').classList.toggle('only-optimal');
+	}
+
+	function toggleSpecialClass() {
+		document.querySelector('body').classList.toggle('no-special');
+	}
+
+	function tormentorName(tormentor) {
+		return tormentor.name + (tormentor.special ? ' (' + tormentor.special + ')' : '');
+	}
+
+	function update() {
+		document.querySelectorAll('.tormentors input.chk-slain').forEach(
+			checkbox => tormentors[Number.parseInt(checkbox.id)].slain = checkbox.checked
+		)
+		storage('tormentors', tormentors);
+		showTormentors();
+	}
+
+	function savePrefs() {
+		prefs = {
+			optimalFrom,
+			optimalTo
+		}
+		storage('prefs', prefs);
+	}
+
+	function loadPrefs() {
+		prefs = storage('prefs')
+		if (prefs) {
+			optimalFrom = prefs.optimalFrom
+			optimalTo = prefs.optimalTo
+		}
+	}
+
+	function storage(key, object) {
+		if (object) {
+			localStorage.setItem(key, JSON.stringify(object))
+		} else {
+			const fromStorage = localStorage.getItem(key);
+			if (fromStorage) {
+				return JSON.parse(fromStorage);
+			} else {
+				return null;
+			}
+		}
+	}
+
+	const themeToggle = document.querySelector("#theme-toggle");
+	themeToggle.addEventListener("click", () => {
+		document.body.classList.contains("light-theme")
+			? enableDarkMode()
+			: enableLightMode();
+	});
+
+	function enableDarkMode() {
+		document.body.classList.remove("light-theme");
+		document.body.classList.add("dark-theme");
+		themeToggle.setAttribute("aria-label", "Switch to light theme");
+	}
+
+	function enableLightMode() {
+		document.body.classList.remove("dark-theme");
+		document.body.classList.add("light-theme");
+		themeToggle.setAttribute("aria-label", "Switch to dark theme");
+	}
+
+	function setThemePreference() {
+		if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+			enableDarkMode();
+			return;
+		}
+		enableLightMode();
+	}
+
+	document.onload = setThemePreference();
+</script>
+
+</html>
