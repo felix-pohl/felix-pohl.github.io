@@ -73,3 +73,45 @@ describe('HappyGuard', () => {
   })
 });
 ```
+
+guard.ts
+```typescript
+import { Injectable } from '@angular/core';
+import { ActivatedRouteSnapshot, CanActivate, CanLoad, Route, Router, RouterStateSnapshot, UrlSegment, UrlTree } from '@angular/router';
+import { map, Observable } from 'rxjs';
+import { PermissionService } from './permission.service';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class HappyGuard implements CanActivate, CanLoad {
+
+  constructor(private readonly router: Router, private readonly permissionService: PermissionService) { }
+
+  canActivate(
+    route: ActivatedRouteSnapshot,
+    state: RouterStateSnapshot): Observable<boolean | UrlTree> | Promise<boolean | UrlTree> | boolean | UrlTree {
+    return this.permissionService.permissions$.pipe(map(
+      value => {
+        if (value.indexOf('happieness') !== -1) {
+          return true;
+        }
+        return this.router.parseUrl('/error');
+      }
+    ))
+  }
+
+  canLoad(
+    route: Route,
+    segments: UrlSegment[]): Observable<boolean | UrlTree> | Promise<boolean | UrlTree> | boolean | UrlTree {
+    return this.permissionService.permissions$.pipe(map(
+      value => {
+        if (value.indexOf('happieness') !== -1) {
+          return true;
+        }
+        return this.router.parseUrl('/error');
+      }
+    ))
+  }
+}
+```
